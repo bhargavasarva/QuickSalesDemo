@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: login-api-v2
+  profiles:
+    active: dev
+
+

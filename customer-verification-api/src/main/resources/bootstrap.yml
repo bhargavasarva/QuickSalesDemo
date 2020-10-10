@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: customer-verification-api-v2
+  profiles:
+    active: dev

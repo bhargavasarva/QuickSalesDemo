@@ -1,0 +1,28 @@
+apiVersion: v1
+data:
+  application.yml: |
+    server:
+      port: 8086
+    spring:
+      h2:
+        console:
+          enabled: true
+          path: /h2-console
+      datasource:
+        url: jdbc:h2:mem:authdb
+      kafka:
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:http://139.59.37.4:9092}
+      zipkin:
+        sender:
+          type: kafka
+      sleuth:
+        sampler:
+          rate: 1000
+    token:
+      expiration.time: 1800000
+      secret.key: ${SECRET_KEY}
+kind: ConfigMap
+metadata:
+  name: login-api
+  namespace: plm
+

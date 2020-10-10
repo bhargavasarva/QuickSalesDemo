@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<included>
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <property name="LOG_PATH" value="logs"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <springProperty scope="context" name="springAppName" source="spring.application.name"/>
+    <springProperty scope="context" name="kafkaBootstrapServers"
+                    source="logger.kafka.bootstrap-servers"/>
+    <springProperty scope="context" name="kafkaRetries" source="logger.kafka.retries"/>
+    <springProperty scope="context" name="kafkaTopic" source="logger.kafka.topic"/>
+
+    <!-- Appender to log to Console -->
+    <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %magenta([%thread]) %highlight(%-5level) [${springAppName},
+                %X{productId}, %X{traceId}, %X{spanId}] %logger{36}.%M - %msg%n
+            </pattern>
+        </layout>
+    </appender>
+
+    <!-- Appender to log to Kafka -->
+    <appender name="KAFKA" class="com.github.danielwegener.logback.kafka.KafkaAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeContext>false</includeContext>
+            <timestampPattern>yyyy-MM-dd HH:mm:ss</timestampPattern>
+            <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
+            <excludeMdcKeyName>X-B3-SpanId</excludeMdcKeyName>
+            <excludeMdcKeyName>X-B3-TraceId</excludeMdcKeyName>
+            <excludeMdcKeyName>X-Span-Export</excludeMdcKeyName>
+            <customFields>{"serviceName":"${springAppName}"}</customFields>
+            <excludeMdcKeyName>kafkaRetries</excludeMdcKeyName>
+            <excludeMdcKeyName>kafkaTopic</excludeMdcKeyName>
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <level>severity</level>
+                <message>data</message>
+                <logger>class</logger>
+                <version>[ignore]</version>
+                <thread>[ignore]</thread>
+                <levelValue>[ignore]</levelValue>
+            </fieldNames>
+            <excludeMdcKeyName>X-B3-ParentSpanId</excludeMdcKeyName>
+            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                <maxDepthPerThrowable>30</maxDepthPerThrowable>
+                <maxLength>2048</maxLength>
+                <shortenedClassNameLength>20</shortenedClassNameLength>
+                <exclude>sun\.reflect\..*\.invoke.*</exclude>
+                <exclude>net\.sf\.cglib\.proxy\.MethodProxy\.invoke</exclude>
+                <!--<evaluator class="sa.com.stc.plm.MyCustomEvaluator"/> -->
+                <rootCauseFirst>true</rootCauseFirst>
+                <inlineHash>true</inlineHash>
+            </throwableConverter>
+        </encoder>
+        <topic>${kafkaTopic}</topic>
+        <keyingStrategy
+                class="com.github.danielwegener.logback.kafka.keying.HostNameKeyingStrategy"/>
+        <deliveryStrategy
+                class="com.github.danielwegener.logback.kafka.delivery.AsynchronousDeliveryStrategy"/>
+        <producerConfig>bootstrap.servers=${kafkaBootstrapServers}</producerConfig>
+        <producerConfig>retries=${kafkaRetries}</producerConfig>
+    </appender>
+
+
+
+
+
+  <springProfile name="dev">
+    <logger additivity="false" level="INFO" name="sa.com.stc">
+      <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="KAFKA"/>
+    </logger>
+    <logger additivity="false" level="INFO" name="org.springframework">
+      <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="KAFKA"/>
+    </logger>
+      <logger additivity="false" level="INFO" name="org.apache.kafka">
+          <appender-ref ref="CONSOLE"/>
+          <appender-ref ref="KAFKA"/>
+      </logger>
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
+
+
+</included>
